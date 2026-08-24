@@ -1,14 +1,15 @@
 from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import time
+from transformers import AutoModelForCausalLM, AutoTokenizer, TextIteratorStreamer
+from threading import Thread
 
 MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
 
 app = FastAPI()
 
-print("Loading model, this takes a minute...")
+print("Loading model...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForCausalLM.from_pretrained(
     MODEL_NAME,
@@ -27,9 +28,17 @@ def health():
 
 @app.post("/generate")
 def generate(req: GenerateRequest):
-    start = time.time()
     inputs = tokenizer(req.prompt, return_tensors="pt").to("cuda")
-    output = model.generate(**inputs, max_new_tokens=req.max_tokens)
-    text = tokenizer.decode(output[0], skip_special_tokens=True)
-    elapsed = time.time() - start
-    return {"text": text, "latency_seconds": elapsed}
+    streamer = TextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
+
+    generation_kwargs = dict(**inputs, max_new_tokens=req.max_tokens, streamer=streamer)
+    thread = Thread(target=model.generate, kwargs=generation_kwargs)
+    thread.start()
+
+    def token_generator():
+        import time as _time
+        for token_text in streamer:
+            print(f"[{_time.time():.3f}] yielded: {token_text!r}")
+            yield token_text
+
+    return StreamingResponse(token_generator(), media_type="text/plain")
