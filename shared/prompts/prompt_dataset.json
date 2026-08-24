@@ -1,0 +1,10 @@
+[
+  {"prompt": "Write a Python function that reverses a linked list.", "max_tokens": 100},
+  {"prompt": "Complete this function: def is_prime(n):", "max_tokens": 60},
+  {"prompt": "Write a for loop that prints numbers 1 to 10.", "max_tokens": 40},
+  {"prompt": "Explain what this code does:\n\ndef fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2)\n\nAlso suggest a more efficient version and explain why it's faster.", "max_tokens": 250},
+  {"prompt": "I have a Python class that manages a database connection pool. Here's the code:\n\nclass ConnectionPool:\n    def __init__(self, size):\n        self.size = size\n        self.connections = []\n\nCan you explain potential issues with this implementation and how to fix them?", "max_tokens": 300},
+  {"prompt": "Add type hints to this function: def add(a, b): return a + b", "max_tokens": 40},
+  {"prompt": "Write a docstring for this function:\n\ndef merge_sort(arr):\n    if len(arr) <= 1:\n        return arr\n    mid = len(arr) // 2\n    return merge(merge_sort(arr[:mid]), merge_sort(arr[mid:]))", "max_tokens": 80},
+  {"prompt": "Explain the difference between a list and a tuple in Python, and give an example of when you'd use each in a real coding-assistant context.", "max_tokens": 200}
+]
