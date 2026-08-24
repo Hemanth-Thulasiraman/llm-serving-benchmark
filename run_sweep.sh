@@ -1,6 +1,7 @@
 #!/bin/bash
 
 STACK=$1  # e.g. naive_hf, tgi, vllm
+export BENCHMARK_STACK=$STACK
 HOST=${2:-http://localhost:8000}
 
 if [ -z "$STACK" ]; then
