@@ -9,8 +9,10 @@ PROMPTS_PATH = Path(__file__).parent / "prompts" / "prompt_dataset.json"
 with open(PROMPTS_PATH) as f:
     PROMPTS = json.load(f)
 
+adapter = requests.adapters.HTTPAdapter(pool_connections=50, pool_maxsize=50)
 session = requests.Session()
-
+session.mount("http://", adapter)
+session.mount("https://", adapter)
 
 class BenchmarkUser(HttpUser):
     wait_time = between(0, 0)
