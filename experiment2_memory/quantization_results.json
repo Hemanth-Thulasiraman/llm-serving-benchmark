@@ -1,0 +1,16 @@
+{
+  "fp16": {
+    "mem_at_rest_mb": 14526.6,
+    "peak_mem_mb": 14552.1,
+    "generation_seconds": 3.07,
+    "tokens_per_second": 48.92,
+    "output_sample": "Explain what this code does:\n\ndef fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2) The provided code defines a function named `fib` that computes the nth number in the Fibonacci sequence. The Fibonacci sequence is a series of numbers where each number is the sum of the two preceding ones, usually starting with 0 and 1.\n\nHere's a step-by-step explanation of how the function works:\n\n1. **Base Case**: If `n` is less than or equal to 1 (i.e., `n <= 1`), the function returns `n`. This is because the first two numbers in the Fibonacci sequence are defined as 0 and 1.\n   - For example, `fib(0)` returns 0, and `fib(1)` returns 1.\n\n2. **Recursive Case**: If `n"
+  },
+  "4bit": {
+    "mem_at_rest_mb": 5589.4,
+    "peak_mem_mb": 5725.8,
+    "generation_seconds": 2.42,
+    "tokens_per_second": 62.11,
+    "output_sample": "Explain what this code does:\n\ndef fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2) The provided Python function `fib(n)` is a recursive implementation of the Fibonacci sequence. Here's a breakdown of what it does:\n\n### Function Purpose:\nThe function computes the **n-th** number in the Fibonacci sequence.\n\n### How It Works:\n- **Base Case:** If `n` is less than or equal to 1, the function returns `n`. This is because the first two numbers in the Fibonacci sequence are defined as `0` and `1`.\n- **Recursive Case:** For any other value of `n`, the function calls itself to compute the previous two numbers in the sequence (`n-1` and `n-2`) and then sums them up.\n\n### Example:\nLet's say you call `fib(5)`"
+  }
+}
