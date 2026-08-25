@@ -15,6 +15,17 @@ RUN_TIME="1m"
 
 mkdir -p "results/$STACK"
 
+warmup() {
+  echo "=== Warming up $STACK (8 throwaway requests) ==="
+  for i in {1..8}; do
+    BENCHMARK_STACK=$STACK locust -f shared/locustfile.py --host "$HOST" \
+      --users 1 --spawn-rate 1 --run-time 3s --headless --csv /tmp/warmup_discard > /dev/null 2>&1
+  done
+  echo "=== Warmup complete ==="
+}
+
+warmup
+
 for c in "${CONCURRENCY_LEVELS[@]}"; do
   for t in $(seq 1 $TRIALS); do
     echo "=== Stack: $STACK | Concurrency: $c | Trial: $t ==="
