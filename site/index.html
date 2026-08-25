@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Inference Serving Benchmark — naive HF vs TGI vs vLLM</title>
+<meta name="description" content="Benchmark comparing naive Hugging Face, TGI, and vLLM inference serving under load: TTFT, throughput, KV-cache memory scaling, and quantization tradeoffs.">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="styles.css?v=4">
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="hero-tag">Systems / AI Engineering Benchmark</div>
+    <h1>How much does the serving stack actually matter?</h1>
+    <p class="lede">
+      Naive Hugging Face, TGI, and vLLM, put through the same load test.
+    </p>
+    <p>
+      This project asks a simple question: if you swap the way you serve an
+      open-weight LLM — a bare <code>transformers.generate()</code> loop vs.
+      Hugging Face's TGI vs. vLLM — how much does it change what users
+      actually experience? To find out, all three stacks were driven with
+      identical Locust load tests across concurrency levels 1–30 (3 trials
+      each, 45 runs total), measuring time-to-first-token, end-to-end
+      latency, and throughput. A second experiment separately profiled
+      KV-cache memory scaling and 4-bit quantization tradeoffs.
+    </p>
+    <div class="hypothesis-box">
+      <div class="label">Hypothesis going in</div>
+      vLLM would deliver roughly <strong>5&times; the throughput</strong> of the
+      naive HF baseline, and hold <strong>p95 TTFT under 1 second</strong> at 30
+      concurrent requests. The results below test that directly.
+    </div>
+    <div class="stat-row" id="hero-stats"></div>
+  </header>
+
+  <section id="ttft">
+    <h2>Time to First Token</h2>
+    <p class="section-sub">
+      TTFT is what a user actually feels as "responsiveness" — the delay
+      before anything starts streaming back. Median (p50) shows the typical
+      case; p95 shows what happens under the worst 1-in-20 requests, which is
+      where serving architecture differences tend to show up. The dashed line
+      marks the 1000ms SLA used throughout this study.
+    </p>
+    <div class="legend-row" id="stack-legend"></div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>TTFT — p50 (median)</h3>
+        <p class="chart-note">Typical case, per request.</p>
+        <canvas id="chart-ttft-p50" role="img" aria-label="Line chart of median time to first token versus concurrency for three serving stacks"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>TTFT — p95</h3>
+        <p class="chart-note">Tail latency; what most users feel under load.</p>
+        <canvas id="chart-ttft-p95" role="img" aria-label="Line chart of 95th percentile time to first token versus concurrency for three serving stacks"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section id="throughput">
+    <h2>Throughput Under Load</h2>
+    <p class="section-sub">
+      Low latency at low concurrency is easy — the real test is what happens
+      as more requests arrive at once. This is where continuous batching
+      (TGI, vLLM) is expected to separate from a naive one-at-a-time loop.
+      Estimated tokens/sec scales requests/sec by the prompt dataset's
+      average <code>max_tokens</code> (133.75) as an output-length proxy.
+    </p>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>Requests / sec</h3>
+        <p class="chart-note">Median across 3 trials per concurrency level.</p>
+        <canvas id="chart-throughput-rps" role="img" aria-label="Line chart of requests per second versus concurrency for three serving stacks"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Estimated tokens / sec</h3>
+        <p class="chart-note">Requests/sec &times; avg. max_tokens per prompt.</p>
+        <canvas id="chart-throughput-tps" role="img" aria-label="Line chart of estimated tokens per second versus concurrency for three serving stacks"></canvas>
+      </div>
+    </div>
+    <p class="stat-qualifier" id="throughput-ratio-note"></p>
+  </section>
+
+  <section id="sla">
+    <h2>Where Each Stack Breaks Down</h2>
+    <p class="section-sub">
+      Putting a number on "under load": the highest concurrency each stack
+      sustained while keeping p95 TTFT under the 1000ms SLA. Two of the three
+      degrade cleanly and get a straight answer; one doesn't, and is marked as
+      such rather than given a number it didn't earn.
+    </p>
+    <div class="callout-row" id="sla-callouts"></div>
+  </section>
+
+  <section id="kv-cache">
+    <h2>How Far Memory Stretches</h2>
+    <p class="section-sub">
+      Throughput isn't the only constraint — memory is the other one. This
+      table sweeps context length against concurrency and shows where the
+      KV cache runs the GPU out of memory (OOM), independent of the three
+      serving stacks above.
+    </p>
+    <div class="table-card">
+      <div class="table-wrap">
+        <table id="kv-table">
+          <caption>KV-cache estimate and peak memory by context length &times; concurrency</caption>
+          <thead>
+            <tr>
+              <th>Context length</th>
+              <th>Concurrency</th>
+              <th>KV-cache est. (MB)</th>
+              <th>Peak memory (MB)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="quantization">
+    <h2>Trading Precision for Headroom</h2>
+    <p class="section-sub">
+      If memory is the bottleneck, quantization is the usual lever. Here's
+      the same model and prompt, loaded in FP16 vs. 4-bit, compared at rest,
+      at peak, and on generation speed.
+    </p>
+    <div class="quant-grid" id="quant-grid"></div>
+    <p class="caveat">
+      Single-trial comparison — not averaged across repeated runs. Treat these
+      numbers as directional, not statistically rigorous.
+    </p>
+  </section>
+
+  <section id="findings">
+    <h2>Findings vs. Hypothesis</h2>
+    <div class="findings-card" id="findings-card"></div>
+  </section>
+
+  <section id="methodology">
+    <h2>Methodology</h2>
+    <div class="methodology-card">
+
+      <h3>Serving stacks under test</h3>
+      <ul>
+        <li><strong>Naive HF</strong> — a plain Hugging Face <code>transformers</code> <code>generate()</code> loop behind a minimal HTTP endpoint, no batching, one request processed at a time.</li>
+        <li><strong>TGI</strong> — Hugging Face's Text Generation Inference server, using its <code>/generate_stream</code> streaming endpoint with continuous batching.</li>
+        <li><strong>vLLM</strong> — served via its OpenAI-compatible <code>/v1/completions</code> endpoint (streaming), using PagedAttention and continuous batching. Model: <code>Qwen/Qwen2.5-7B-Instruct</code>.</li>
+      </ul>
+
+      <h3>Load generation</h3>
+      <p>
+        <a href="https://locust.io" target="_blank" rel="noopener">Locust</a> drove
+        each stack with a shared load-testing script (<code>shared/locustfile.py</code>),
+        picking a random prompt from an 8-prompt dataset (<code>max_tokens</code>
+        ranging 40–300, average 133.75) per request. Each concurrency level ran
+        with <code>--users N --spawn-rate N</code> for a fixed <code>1m</code>
+        window, headless, with an 8-request warmup pass before each stack's sweep.
+        Concurrency levels: <strong>1, 5, 10, 20, 30</strong> — 3 trials each, 45
+        Locust runs total across the three stacks.
+      </p>
+
+      <h3>Metrics captured</h3>
+      <p>
+        Two Locust request types were recorded per call: <strong>TTFT</strong>
+        (time to first streamed byte) and <strong>TOTAL</strong> (full response
+        time). For each stack &times; concurrency combination, the 3 trials'
+        per-trial median and p95 values were themselves aggregated by taking the
+        <em>median across trials</em> — smoothing single-run noise without
+        discarding the tail-latency signal. Throughput is Locust's measured
+        requests/sec per trial, similarly aggregated; estimated tokens/sec
+        multiplies that by the dataset's average <code>max_tokens</code> as a
+        rough output-length proxy (not a token-exact count).
+      </p>
+
+      <h3>Memory experiments</h3>
+      <p>
+        Run as a separate experiment (<code>experiment2_memory/</code>), outside
+        the Locust sweeps. <strong>KV-cache scaling</strong> swept context length
+        (512–4096 tokens) &times; concurrency (1–20), recording memory before and
+        after generation and flagging OOM. <strong>Quantization</strong> compared
+        FP16 vs. 4-bit loading of the same model on the same prompt — memory at
+        rest, peak memory, and generation speed — as a <em>single trial per
+        configuration</em>, not averaged across repeated runs.
+      </p>
+
+      <div class="limitations-note">
+        <strong>Known limitation:</strong> the formal automated warmup step was
+        added to the sweep script after the vLLM cold-start issue surfaced
+        mid-project. Naive HF and TGI's <code>c1_trial1</code> runs predate that
+        change and may carry a small residual cold-start effect (partially offset
+        by incidental manual warmup requests made before each sweep). Documented
+        rather than re-run, to preserve project momentum — a more rigorous
+        version would re-run all three stacks under identical formal warmup.
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Benchmarked with Locust across naive Hugging Face <code>transformers</code>,
+    TGI, and vLLM. Source data and analysis script in the project repository.
+  </footer>
+
+</div>
+
+<script id="summary-data" type="application/json">
+{
+  "meta": {
+    "stacks": [
+      "naive_hf",
+      "tgi",
+      "vllm"
+    ],
+    "stack_labels": {
+      "naive_hf": "Naive HF",
+      "tgi": "TGI",
+      "vllm": "vLLM"
+    },
+    "concurrencies": [
+      1,
+      5,
+      10,
+      20,
+      30
+    ],
+    "trials_per_point": 3,
+    "ttft_sla_ms": 1000,
+    "avg_max_tokens": 133.75
+  },
+  "per_stack_concurrency": [
+    {
+      "stack": "naive_hf",
+      "concurrency": 1,
+      "ttft_median_ms": 170.0,
+      "ttft_p95_ms": 250.0,
+      "total_median_ms": 1600.0,
+      "total_p95_ms": 5600.0,
+      "requests_per_s": 0.459,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 170.0,
+      "total_p95_across_trials": 1690.0,
+      "tokens_per_s_est": 61.327
+    },
+    {
+      "stack": "naive_hf",
+      "concurrency": 5,
+      "ttft_median_ms": 280.0,
+      "ttft_p95_ms": 410.0,
+      "total_median_ms": 8800.0,
+      "total_p95_ms": 27000.0,
+      "requests_per_s": 0.341,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 280.0,
+      "total_p95_across_trials": 9070.0,
+      "tokens_per_s_est": 45.606
+    },
+    {
+      "stack": "naive_hf",
+      "concurrency": 10,
+      "ttft_median_ms": 410.0,
+      "ttft_p95_ms": 1100.0,
+      "total_median_ms": 15000.0,
+      "total_p95_ms": 46000.0,
+      "requests_per_s": 0.358,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 482.0,
+      "total_p95_across_trials": 15900.0,
+      "tokens_per_s_est": 47.871
+    },
+    {
+      "stack": "naive_hf",
+      "concurrency": 20,
+      "ttft_median_ms": 1200.0,
+      "ttft_p95_ms": 1500.0,
+      "total_median_ms": 31000.0,
+      "total_p95_ms": 56000.0,
+      "requests_per_s": 0.367,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 1548.255,
+      "total_p95_across_trials": 35500.0,
+      "tokens_per_s_est": 49.056
+    },
+    {
+      "stack": "naive_hf",
+      "concurrency": 30,
+      "ttft_median_ms": 1600.0,
+      "ttft_p95_ms": 1600.0,
+      "total_median_ms": 38000.0,
+      "total_p95_ms": 49000.0,
+      "requests_per_s": 0.223,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 1870.0,
+      "total_p95_across_trials": 47000.0,
+      "tokens_per_s_est": 29.814
+    },
+    {
+      "stack": "tgi",
+      "concurrency": 1,
+      "ttft_median_ms": 320.0,
+      "ttft_p95_ms": 740.0,
+      "total_median_ms": 2000.0,
+      "total_p95_ms": 5300.0,
+      "requests_per_s": 0.363,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 329.0,
+      "total_p95_across_trials": 3350.0,
+      "tokens_per_s_est": 48.59
+    },
+    {
+      "stack": "tgi",
+      "concurrency": 5,
+      "ttft_median_ms": 320.0,
+      "ttft_p95_ms": 1100.0,
+      "total_median_ms": 1900.0,
+      "total_p95_ms": 5500.0,
+      "requests_per_s": 1.902,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 365.0,
+      "total_p95_across_trials": 2710.0,
+      "tokens_per_s_est": 254.414
+    },
+    {
+      "stack": "tgi",
+      "concurrency": 10,
+      "ttft_median_ms": 320.0,
+      "ttft_p95_ms": 610.0,
+      "total_median_ms": 2000.0,
+      "total_p95_ms": 5600.0,
+      "requests_per_s": 3.643,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 329.0,
+      "total_p95_across_trials": 2000.0,
+      "tokens_per_s_est": 487.202
+    },
+    {
+      "stack": "tgi",
+      "concurrency": 20,
+      "ttft_median_ms": 330.0,
+      "ttft_p95_ms": 1000.0,
+      "total_median_ms": 2200.0,
+      "total_p95_ms": 6200.0,
+      "requests_per_s": 6.857,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 348.0,
+      "total_p95_across_trials": 2200.0,
+      "tokens_per_s_est": 917.167
+    },
+    {
+      "stack": "tgi",
+      "concurrency": 30,
+      "ttft_median_ms": 340.0,
+      "ttft_p95_ms": 1000.0,
+      "total_median_ms": 2200.0,
+      "total_p95_ms": 6400.0,
+      "requests_per_s": 9.712,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 340.0,
+      "total_p95_across_trials": 2290.0,
+      "tokens_per_s_est": 1299.018
+    },
+    {
+      "stack": "vllm",
+      "concurrency": 1,
+      "ttft_median_ms": 210.0,
+      "ttft_p95_ms": 590.0,
+      "total_median_ms": 1800.0,
+      "total_p95_ms": 5200.0,
+      "requests_per_s": 0.38,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 228.0,
+      "total_p95_across_trials": 3150.0,
+      "tokens_per_s_est": 50.762
+    },
+    {
+      "stack": "vllm",
+      "concurrency": 5,
+      "ttft_median_ms": 220.0,
+      "ttft_p95_ms": 550.0,
+      "total_median_ms": 1600.0,
+      "total_p95_ms": 5100.0,
+      "requests_per_s": 2.088,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 247.0,
+      "total_p95_across_trials": 1600.0,
+      "tokens_per_s_est": 279.29
+    },
+    {
+      "stack": "vllm",
+      "concurrency": 10,
+      "ttft_median_ms": 230.0,
+      "ttft_p95_ms": 540.0,
+      "total_median_ms": 1700.0,
+      "total_p95_ms": 5200.0,
+      "requests_per_s": 4.14,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 239.0,
+      "total_p95_across_trials": 1790.0,
+      "tokens_per_s_est": 553.693
+    },
+    {
+      "stack": "vllm",
+      "concurrency": 20,
+      "ttft_median_ms": 220.0,
+      "ttft_p95_ms": 580.0,
+      "total_median_ms": 1900.0,
+      "total_p95_ms": 5500.0,
+      "requests_per_s": 7.671,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 229.0,
+      "total_p95_across_trials": 1900.0,
+      "tokens_per_s_est": 1026.038
+    },
+    {
+      "stack": "vllm",
+      "concurrency": 30,
+      "ttft_median_ms": 240.0,
+      "ttft_p95_ms": 590.0,
+      "total_median_ms": 2000.0,
+      "total_p95_ms": 5600.0,
+      "requests_per_s": 11.253,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 240.0,
+      "total_p95_across_trials": 2000.0,
+      "tokens_per_s_est": 1505.05
+    }
+  ],
+  "sla": {
+    "naive_hf": {
+      "max_concurrency_under_sla": 5,
+      "sla_ms": 1000,
+      "breached_at": 10,
+      "levels_under_sla": [
+        1,
+        5
+      ],
+      "levels_over_sla": [
+        10,
+        20,
+        30
+      ],
+      "sustained_concurrency": 5,
+      "consistent": true
+    },
+    "tgi": {
+      "max_concurrency_under_sla": 10,
+      "sla_ms": 1000,
+      "breached_at": 5,
+      "levels_under_sla": [
+        1,
+        10
+      ],
+      "levels_over_sla": [
+        5,
+        20,
+        30
+      ],
+      "sustained_concurrency": 1,
+      "consistent": false
+    },
+    "vllm": {
+      "max_concurrency_under_sla": 30,
+      "sla_ms": 1000,
+      "breached_at": null,
+      "levels_under_sla": [
+        1,
+        5,
+        10,
+        20,
+        30
+      ],
+      "levels_over_sla": [],
+      "sustained_concurrency": 30,
+      "consistent": true
+    }
+  },
+  "kv_cache": [
+    {
+      "context_length": 512,
+      "concurrency": 1,
+      "mem_before_mb": 14526.6,
+      "mem_after_mb": 14711.3,
+      "kv_cache_estimate_mb": 184.6,
+      "peak_mem_mb": 14714.8,
+      "oom": false
+    },
+    {
+      "context_length": 512,
+      "concurrency": 5,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 15421.7,
+      "kv_cache_estimate_mb": 886.9,
+      "peak_mem_mb": 15439.2,
+      "oom": false
+    },
+    {
+      "context_length": 512,
+      "concurrency": 10,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 16303.8,
+      "kv_cache_estimate_mb": 1769.0,
+      "peak_mem_mb": 16338.8,
+      "oom": false
+    },
+    {
+      "context_length": 512,
+      "concurrency": 20,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 18064.8,
+      "kv_cache_estimate_mb": 3530.1,
+      "peak_mem_mb": 18134.8,
+      "oom": false
+    },
+    {
+      "context_length": 1024,
+      "concurrency": 1,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 14888.8,
+      "kv_cache_estimate_mb": 354.0,
+      "peak_mem_mb": 14895.8,
+      "oom": false
+    },
+    {
+      "context_length": 1024,
+      "concurrency": 5,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 16303.8,
+      "kv_cache_estimate_mb": 1769.0,
+      "peak_mem_mb": 16338.8,
+      "oom": false
+    },
+    {
+      "context_length": 1024,
+      "concurrency": 10,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 18064.8,
+      "kv_cache_estimate_mb": 3530.1,
+      "peak_mem_mb": 18134.8,
+      "oom": false
+    },
+    {
+      "context_length": 1024,
+      "concurrency": 20,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 21594.9,
+      "kv_cache_estimate_mb": 7060.2,
+      "peak_mem_mb": 21734.9,
+      "oom": false
+    },
+    {
+      "context_length": 2048,
+      "concurrency": 1,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 15241.2,
+      "kv_cache_estimate_mb": 706.4,
+      "peak_mem_mb": 15255.2,
+      "oom": false
+    },
+    {
+      "context_length": 2048,
+      "concurrency": 5,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 18064.8,
+      "kv_cache_estimate_mb": 3530.1,
+      "peak_mem_mb": 18134.8,
+      "oom": false
+    },
+    {
+      "context_length": 2048,
+      "concurrency": 10,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 21594.9,
+      "kv_cache_estimate_mb": 7060.2,
+      "peak_mem_mb": 21734.9,
+      "oom": false
+    },
+    {
+      "context_length": 2048,
+      "concurrency": 20,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": null,
+      "kv_cache_estimate_mb": null,
+      "peak_mem_mb": null,
+      "oom": true
+    },
+    {
+      "context_length": 4096,
+      "concurrency": 1,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 15947.2,
+      "kv_cache_estimate_mb": 1412.4,
+      "peak_mem_mb": 15975.2,
+      "oom": false
+    },
+    {
+      "context_length": 4096,
+      "concurrency": 5,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 21594.9,
+      "kv_cache_estimate_mb": 7060.2,
+      "peak_mem_mb": 21734.9,
+      "oom": false
+    },
+    {
+      "context_length": 4096,
+      "concurrency": 10,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": null,
+      "kv_cache_estimate_mb": null,
+      "peak_mem_mb": null,
+      "oom": true
+    },
+    {
+      "context_length": 4096,
+      "concurrency": 20,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": null,
+      "kv_cache_estimate_mb": null,
+      "peak_mem_mb": null,
+      "oom": true
+    }
+  ],
+  "quantization": {
+    "fp16": {
+      "mem_at_rest_mb": 14526.6,
+      "peak_mem_mb": 14552.1,
+      "generation_seconds": 3.07,
+      "tokens_per_second": 48.92,
+      "output_sample": "Explain what this code does:\n\ndef fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2) The provided code defines a function named `fib` that computes the nth number in the Fibonacci sequence. The Fibonacci sequence is a series of numbers where each number is the sum of the two preceding ones, usually starting with 0 and 1.\n\nHere's a step-by-step explanation of how the function works:\n\n1. **Base Case**: If `n` is less than or equal to 1 (i.e., `n <= 1`), the function returns `n`. This is because the first two numbers in the Fibonacci sequence are defined as 0 and 1.\n   - For example, `fib(0)` returns 0, and `fib(1)` returns 1.\n\n2. **Recursive Case**: If `n"
+    },
+    "4bit": {
+      "mem_at_rest_mb": 5589.4,
+      "peak_mem_mb": 5725.8,
+      "generation_seconds": 2.42,
+      "tokens_per_second": 62.11,
+      "output_sample": "Explain what this code does:\n\ndef fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2) The provided Python function `fib(n)` is a recursive implementation of the Fibonacci sequence. Here's a breakdown of what it does:\n\n### Function Purpose:\nThe function computes the **n-th** number in the Fibonacci sequence.\n\n### How It Works:\n- **Base Case:** If `n` is less than or equal to 1, the function returns `n`. This is because the first two numbers in the Fibonacci sequence are defined as `0` and `1`.\n- **Recursive Case:** For any other value of `n`, the function calls itself to compute the previous two numbers in the sequence (`n-1` and `n-2`) and then sums them up.\n\n### Example:\nLet's say you call `fib(5)`"
+    },
+    "mem_reduction_pct": 61.5,
+    "speed_change_pct": 27.0,
+    "note": "Single-trial comparison \u2014 not averaged across repeated runs; treat as directional, not statistically rigorous."
+  },
+  "hypothesis_check": {
+    "hypothesis": "vLLM achieves ~5x throughput vs naive HF, and p95 TTFT stays under 1s at 30 concurrent requests.",
+    "vllm_vs_naive_throughput_ratio_at_c30": 50.48,
+    "vllm_p95_ttft_ms_at_c30": 590.0,
+    "vllm_meets_ttft_sla_at_c30": true,
+    "throughput_claim_confirmed": true
+  }
+}
+</script>
+<script src="app.js?v=4"></script>
+</body>
+</html>

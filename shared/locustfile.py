@@ -24,7 +24,14 @@ def build_request(prompt_obj):
             "inputs": prompt_obj["prompt"],
             "parameters": {"max_new_tokens": prompt_obj["max_tokens"]}
         }
-    else:  # naive_hf, vllm (vLLM's OpenAI-compatible endpoint handled separately later)
+    elif STACK == "vllm":
+        return "/v1/completions", {
+            "model": "Qwen/Qwen2.5-7B-Instruct",
+            "prompt": prompt_obj["prompt"],
+            "max_tokens": prompt_obj["max_tokens"],
+            "stream": True
+        }
+    else:  # naive_hf
         return "/generate", {
             "prompt": prompt_obj["prompt"],
             "max_tokens": prompt_obj["max_tokens"]
@@ -38,11 +45,12 @@ class BenchmarkUser(HttpUser):
     def generate(self):
         prompt_obj = random.choice(PROMPTS)
         path, payload = build_request(prompt_obj)
+        headers = {"Authorization": f"Bearer {os.environ.get('VLLM_API_KEY', '')}"} if STACK == "vllm" else {}
         start = time.time()
         first_byte_time = None
 
         try:
-            response = session.post(self.host + path, json=payload, stream=True, timeout=60)
+            response = session.post(self.host + path, json=payload, headers=headers, stream=True, timeout=60)
             for chunk in response.iter_content(chunk_size=None):
                 if first_byte_time is None:
                     first_byte_time = time.time()

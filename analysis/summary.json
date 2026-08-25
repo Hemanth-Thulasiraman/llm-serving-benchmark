@@ -1,0 +1,442 @@
+{
+  "meta": {
+    "stacks": [
+      "naive_hf",
+      "tgi",
+      "vllm"
+    ],
+    "stack_labels": {
+      "naive_hf": "Naive HF",
+      "tgi": "TGI",
+      "vllm": "vLLM"
+    },
+    "concurrencies": [
+      1,
+      5,
+      10,
+      20,
+      30
+    ],
+    "trials_per_point": 3,
+    "ttft_sla_ms": 1000,
+    "avg_max_tokens": 133.75
+  },
+  "per_stack_concurrency": [
+    {
+      "stack": "naive_hf",
+      "concurrency": 1,
+      "ttft_median_ms": 170.0,
+      "ttft_p95_ms": 250.0,
+      "total_median_ms": 1600.0,
+      "total_p95_ms": 5600.0,
+      "requests_per_s": 0.459,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 170.0,
+      "total_p95_across_trials": 1690.0,
+      "tokens_per_s_est": 61.327
+    },
+    {
+      "stack": "naive_hf",
+      "concurrency": 5,
+      "ttft_median_ms": 280.0,
+      "ttft_p95_ms": 410.0,
+      "total_median_ms": 8800.0,
+      "total_p95_ms": 27000.0,
+      "requests_per_s": 0.341,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 280.0,
+      "total_p95_across_trials": 9070.0,
+      "tokens_per_s_est": 45.606
+    },
+    {
+      "stack": "naive_hf",
+      "concurrency": 10,
+      "ttft_median_ms": 410.0,
+      "ttft_p95_ms": 1100.0,
+      "total_median_ms": 15000.0,
+      "total_p95_ms": 46000.0,
+      "requests_per_s": 0.358,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 482.0,
+      "total_p95_across_trials": 15900.0,
+      "tokens_per_s_est": 47.871
+    },
+    {
+      "stack": "naive_hf",
+      "concurrency": 20,
+      "ttft_median_ms": 1200.0,
+      "ttft_p95_ms": 1500.0,
+      "total_median_ms": 31000.0,
+      "total_p95_ms": 56000.0,
+      "requests_per_s": 0.367,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 1548.255,
+      "total_p95_across_trials": 35500.0,
+      "tokens_per_s_est": 49.056
+    },
+    {
+      "stack": "naive_hf",
+      "concurrency": 30,
+      "ttft_median_ms": 1600.0,
+      "ttft_p95_ms": 1600.0,
+      "total_median_ms": 38000.0,
+      "total_p95_ms": 49000.0,
+      "requests_per_s": 0.223,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 1870.0,
+      "total_p95_across_trials": 47000.0,
+      "tokens_per_s_est": 29.814
+    },
+    {
+      "stack": "tgi",
+      "concurrency": 1,
+      "ttft_median_ms": 320.0,
+      "ttft_p95_ms": 740.0,
+      "total_median_ms": 2000.0,
+      "total_p95_ms": 5300.0,
+      "requests_per_s": 0.363,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 329.0,
+      "total_p95_across_trials": 3350.0,
+      "tokens_per_s_est": 48.59
+    },
+    {
+      "stack": "tgi",
+      "concurrency": 5,
+      "ttft_median_ms": 320.0,
+      "ttft_p95_ms": 1100.0,
+      "total_median_ms": 1900.0,
+      "total_p95_ms": 5500.0,
+      "requests_per_s": 1.902,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 365.0,
+      "total_p95_across_trials": 2710.0,
+      "tokens_per_s_est": 254.414
+    },
+    {
+      "stack": "tgi",
+      "concurrency": 10,
+      "ttft_median_ms": 320.0,
+      "ttft_p95_ms": 610.0,
+      "total_median_ms": 2000.0,
+      "total_p95_ms": 5600.0,
+      "requests_per_s": 3.643,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 329.0,
+      "total_p95_across_trials": 2000.0,
+      "tokens_per_s_est": 487.202
+    },
+    {
+      "stack": "tgi",
+      "concurrency": 20,
+      "ttft_median_ms": 330.0,
+      "ttft_p95_ms": 1000.0,
+      "total_median_ms": 2200.0,
+      "total_p95_ms": 6200.0,
+      "requests_per_s": 6.857,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 348.0,
+      "total_p95_across_trials": 2200.0,
+      "tokens_per_s_est": 917.167
+    },
+    {
+      "stack": "tgi",
+      "concurrency": 30,
+      "ttft_median_ms": 340.0,
+      "ttft_p95_ms": 1000.0,
+      "total_median_ms": 2200.0,
+      "total_p95_ms": 6400.0,
+      "requests_per_s": 9.712,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 340.0,
+      "total_p95_across_trials": 2290.0,
+      "tokens_per_s_est": 1299.018
+    },
+    {
+      "stack": "vllm",
+      "concurrency": 1,
+      "ttft_median_ms": 210.0,
+      "ttft_p95_ms": 590.0,
+      "total_median_ms": 1800.0,
+      "total_p95_ms": 5200.0,
+      "requests_per_s": 0.38,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 228.0,
+      "total_p95_across_trials": 3150.0,
+      "tokens_per_s_est": 50.762
+    },
+    {
+      "stack": "vllm",
+      "concurrency": 5,
+      "ttft_median_ms": 220.0,
+      "ttft_p95_ms": 550.0,
+      "total_median_ms": 1600.0,
+      "total_p95_ms": 5100.0,
+      "requests_per_s": 2.088,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 247.0,
+      "total_p95_across_trials": 1600.0,
+      "tokens_per_s_est": 279.29
+    },
+    {
+      "stack": "vllm",
+      "concurrency": 10,
+      "ttft_median_ms": 230.0,
+      "ttft_p95_ms": 540.0,
+      "total_median_ms": 1700.0,
+      "total_p95_ms": 5200.0,
+      "requests_per_s": 4.14,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 239.0,
+      "total_p95_across_trials": 1790.0,
+      "tokens_per_s_est": 553.693
+    },
+    {
+      "stack": "vllm",
+      "concurrency": 20,
+      "ttft_median_ms": 220.0,
+      "ttft_p95_ms": 580.0,
+      "total_median_ms": 1900.0,
+      "total_p95_ms": 5500.0,
+      "requests_per_s": 7.671,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 229.0,
+      "total_p95_across_trials": 1900.0,
+      "tokens_per_s_est": 1026.038
+    },
+    {
+      "stack": "vllm",
+      "concurrency": 30,
+      "ttft_median_ms": 240.0,
+      "ttft_p95_ms": 590.0,
+      "total_median_ms": 2000.0,
+      "total_p95_ms": 5600.0,
+      "requests_per_s": 11.253,
+      "trial_count": 3,
+      "ttft_p95_across_trials": 240.0,
+      "total_p95_across_trials": 2000.0,
+      "tokens_per_s_est": 1505.05
+    }
+  ],
+  "sla": {
+    "naive_hf": {
+      "max_concurrency_under_sla": 5,
+      "sla_ms": 1000,
+      "breached_at": 10,
+      "levels_under_sla": [
+        1,
+        5
+      ],
+      "levels_over_sla": [
+        10,
+        20,
+        30
+      ],
+      "sustained_concurrency": 5,
+      "consistent": true
+    },
+    "tgi": {
+      "max_concurrency_under_sla": 10,
+      "sla_ms": 1000,
+      "breached_at": 5,
+      "levels_under_sla": [
+        1,
+        10
+      ],
+      "levels_over_sla": [
+        5,
+        20,
+        30
+      ],
+      "sustained_concurrency": 1,
+      "consistent": false
+    },
+    "vllm": {
+      "max_concurrency_under_sla": 30,
+      "sla_ms": 1000,
+      "breached_at": null,
+      "levels_under_sla": [
+        1,
+        5,
+        10,
+        20,
+        30
+      ],
+      "levels_over_sla": [],
+      "sustained_concurrency": 30,
+      "consistent": true
+    }
+  },
+  "kv_cache": [
+    {
+      "context_length": 512,
+      "concurrency": 1,
+      "mem_before_mb": 14526.6,
+      "mem_after_mb": 14711.3,
+      "kv_cache_estimate_mb": 184.6,
+      "peak_mem_mb": 14714.8,
+      "oom": false
+    },
+    {
+      "context_length": 512,
+      "concurrency": 5,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 15421.7,
+      "kv_cache_estimate_mb": 886.9,
+      "peak_mem_mb": 15439.2,
+      "oom": false
+    },
+    {
+      "context_length": 512,
+      "concurrency": 10,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 16303.8,
+      "kv_cache_estimate_mb": 1769.0,
+      "peak_mem_mb": 16338.8,
+      "oom": false
+    },
+    {
+      "context_length": 512,
+      "concurrency": 20,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 18064.8,
+      "kv_cache_estimate_mb": 3530.1,
+      "peak_mem_mb": 18134.8,
+      "oom": false
+    },
+    {
+      "context_length": 1024,
+      "concurrency": 1,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 14888.8,
+      "kv_cache_estimate_mb": 354.0,
+      "peak_mem_mb": 14895.8,
+      "oom": false
+    },
+    {
+      "context_length": 1024,
+      "concurrency": 5,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 16303.8,
+      "kv_cache_estimate_mb": 1769.0,
+      "peak_mem_mb": 16338.8,
+      "oom": false
+    },
+    {
+      "context_length": 1024,
+      "concurrency": 10,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 18064.8,
+      "kv_cache_estimate_mb": 3530.1,
+      "peak_mem_mb": 18134.8,
+      "oom": false
+    },
+    {
+      "context_length": 1024,
+      "concurrency": 20,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 21594.9,
+      "kv_cache_estimate_mb": 7060.2,
+      "peak_mem_mb": 21734.9,
+      "oom": false
+    },
+    {
+      "context_length": 2048,
+      "concurrency": 1,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 15241.2,
+      "kv_cache_estimate_mb": 706.4,
+      "peak_mem_mb": 15255.2,
+      "oom": false
+    },
+    {
+      "context_length": 2048,
+      "concurrency": 5,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 18064.8,
+      "kv_cache_estimate_mb": 3530.1,
+      "peak_mem_mb": 18134.8,
+      "oom": false
+    },
+    {
+      "context_length": 2048,
+      "concurrency": 10,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 21594.9,
+      "kv_cache_estimate_mb": 7060.2,
+      "peak_mem_mb": 21734.9,
+      "oom": false
+    },
+    {
+      "context_length": 2048,
+      "concurrency": 20,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": null,
+      "kv_cache_estimate_mb": null,
+      "peak_mem_mb": null,
+      "oom": true
+    },
+    {
+      "context_length": 4096,
+      "concurrency": 1,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 15947.2,
+      "kv_cache_estimate_mb": 1412.4,
+      "peak_mem_mb": 15975.2,
+      "oom": false
+    },
+    {
+      "context_length": 4096,
+      "concurrency": 5,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": 21594.9,
+      "kv_cache_estimate_mb": 7060.2,
+      "peak_mem_mb": 21734.9,
+      "oom": false
+    },
+    {
+      "context_length": 4096,
+      "concurrency": 10,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": null,
+      "kv_cache_estimate_mb": null,
+      "peak_mem_mb": null,
+      "oom": true
+    },
+    {
+      "context_length": 4096,
+      "concurrency": 20,
+      "mem_before_mb": 14534.8,
+      "mem_after_mb": null,
+      "kv_cache_estimate_mb": null,
+      "peak_mem_mb": null,
+      "oom": true
+    }
+  ],
+  "quantization": {
+    "fp16": {
+      "mem_at_rest_mb": 14526.6,
+      "peak_mem_mb": 14552.1,
+      "generation_seconds": 3.07,
+      "tokens_per_second": 48.92,
+      "output_sample": "Explain what this code does:\n\ndef fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2) The provided code defines a function named `fib` that computes the nth number in the Fibonacci sequence. The Fibonacci sequence is a series of numbers where each number is the sum of the two preceding ones, usually starting with 0 and 1.\n\nHere's a step-by-step explanation of how the function works:\n\n1. **Base Case**: If `n` is less than or equal to 1 (i.e., `n <= 1`), the function returns `n`. This is because the first two numbers in the Fibonacci sequence are defined as 0 and 1.\n   - For example, `fib(0)` returns 0, and `fib(1)` returns 1.\n\n2. **Recursive Case**: If `n"
+    },
+    "4bit": {
+      "mem_at_rest_mb": 5589.4,
+      "peak_mem_mb": 5725.8,
+      "generation_seconds": 2.42,
+      "tokens_per_second": 62.11,
+      "output_sample": "Explain what this code does:\n\ndef fib(n):\n    if n <= 1:\n        return n\n    return fib(n-1) + fib(n-2) The provided Python function `fib(n)` is a recursive implementation of the Fibonacci sequence. Here's a breakdown of what it does:\n\n### Function Purpose:\nThe function computes the **n-th** number in the Fibonacci sequence.\n\n### How It Works:\n- **Base Case:** If `n` is less than or equal to 1, the function returns `n`. This is because the first two numbers in the Fibonacci sequence are defined as `0` and `1`.\n- **Recursive Case:** For any other value of `n`, the function calls itself to compute the previous two numbers in the sequence (`n-1` and `n-2`) and then sums them up.\n\n### Example:\nLet's say you call `fib(5)`"
+    },
+    "mem_reduction_pct": 61.5,
+    "speed_change_pct": 27.0,
+    "note": "Single-trial comparison \u2014 not averaged across repeated runs; treat as directional, not statistically rigorous."
+  },
+  "hypothesis_check": {
+    "hypothesis": "vLLM achieves ~5x throughput vs naive HF, and p95 TTFT stays under 1s at 30 concurrent requests.",
+    "vllm_vs_naive_throughput_ratio_at_c30": 50.48,
+    "vllm_p95_ttft_ms_at_c30": 590.0,
+    "vllm_meets_ttft_sla_at_c30": true,
+    "throughput_claim_confirmed": true
+  }
+}

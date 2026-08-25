@@ -1,0 +1,607 @@
+/* ---------------------------------------------------------------------
+   theme tokens — dark-first. flip to light only when the OS asks for it.
+--------------------------------------------------------------------- */
+:root {
+  color-scheme: dark;
+  --page:           #0c0c0d;
+  --surface-1:      #131315;
+  --surface-2:      #19191c;
+  --text-primary:   #eeeeec;
+  --text-secondary: #a8a7a0;
+  --text-muted:     #6f6e68;
+  --gridline:       #26262a;
+  --baseline:       #35353a;
+  --border:         rgba(238,238,236,0.10);
+  --accent:         #ff8a3d;
+  --accent-soft:    #3a2415;
+  --accent-strong:  #ffab6e;
+  --accent-dim:     #b45b1e;
+  /* chart series identity — do not repurpose for chrome */
+  --series-1:       #3987e5;
+  --series-2:       #ff8a3d;
+  --series-3:       #22c58f;
+  --good:           #3fd23f;
+  --critical:       #ff6b6b;
+  --warning:        #fab219;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Roboto Mono", monospace;
+  /* background motif: KV-cache page grid + request-flow glow */
+  --grid-ink:       rgba(238,238,236,0.075);
+  --glow-a:         rgba(255,138,61,0.16);
+  --glow-b:         rgba(34,197,143,0.08);
+  /* one shared measure so every block of prose breaks on the same column */
+  --measure:        68ch;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --page:           #f6f4f0;
+    --surface-1:      #ffffff;
+    --surface-2:      #fbeee2;
+    --text-primary:   #16140f;
+    --text-secondary: #55503f;
+    --text-muted:     #8a8372;
+    --gridline:       #e6ddcd;
+    --baseline:       #d8cbb1;
+    --border:         rgba(22,20,15,0.12);
+    --accent:         #c9490f;
+    --accent-soft:    #fbe0c8;
+    --accent-strong:  #a83c0d;
+    --accent-dim:     #e3712e;
+    --series-1:       #2a78d6;
+    --series-2:       #c9490f;
+    --series-3:       #148a63;
+    --good:           #157a15;
+    --critical:       #c62d2d;
+    --grid-ink:       rgba(22,20,15,0.075);
+    --glow-a:         rgba(201,73,15,0.11);
+    --glow-b:         rgba(20,138,99,0.07);
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page:           #f6f4f0;
+  --surface-1:      #ffffff;
+  --surface-2:      #fbeee2;
+  --text-primary:   #16140f;
+  --text-secondary: #55503f;
+  --text-muted:     #8a8372;
+  --gridline:       #e6ddcd;
+  --baseline:       #d8cbb1;
+  --border:         rgba(22,20,15,0.12);
+  --accent:         #c9490f;
+  --accent-soft:    #fbe0c8;
+  --accent-strong:  #a83c0d;
+  --accent-dim:     #e3712e;
+  --series-1:       #2a78d6;
+  --series-2:       #c9490f;
+  --series-3:       #148a63;
+  --good:           #157a15;
+  --critical:       #c62d2d;
+  --grid-ink:       rgba(22,20,15,0.075);
+  --glow-a:         rgba(201,73,15,0.11);
+  --glow-b:         rgba(20,138,99,0.07);
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--page); }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* transparent on purpose: html carries the page color. An opaque background
+     here would paint over the negative-z-index motif layers below. */
+  background: transparent;
+  color: var(--text-primary);
+  line-height: 1.65;
+  font-size: 15.5px;
+  position: relative;
+}
+
+/* Background motif, two fixed layers behind all content:
+   ::after  — a fine block grid, standing in for paged KV-cache memory
+   ::before — soft directional glows, standing in for request flow
+   Both are decorative and deliberately near-threshold. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(90deg, var(--grid-ink) 0 1px, transparent 1px 36px),
+    repeating-linear-gradient(0deg,  var(--grid-ink) 0 1px, transparent 1px 36px);
+  -webkit-mask-image: linear-gradient(180deg, #000 0, rgba(0,0,0,0.55) 45%, transparent 85%);
+  mask-image: linear-gradient(180deg, #000 0, rgba(0,0,0,0.55) 45%, transparent 85%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(880px 520px at 10% -10%, var(--glow-a), transparent 62%),
+    radial-gradient(720px 460px at 92% 2%,  var(--glow-b), transparent 60%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* the grid drifts almost imperceptibly, like pages cycling through the cache */
+  body::after { animation: drift 42s linear infinite; }
+}
+@keyframes drift {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 36px 0, 0 36px; }
+}
+
+code, .mono { font-family: var(--mono); font-size: 0.92em; }
+
+a { color: var(--accent-strong); }
+
+.wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 56px 24px 90px;
+}
+
+/* ---------------------------------------------------------------------
+   hero
+--------------------------------------------------------------------- */
+header.hero {
+  padding-bottom: 40px;
+  margin-bottom: 48px;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-tag {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+header.hero h1 {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 18px;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  max-width: 22ch;
+  text-wrap: balance;
+}
+
+header.hero p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  max-width: var(--measure);
+  margin: 0 0 8px;
+  text-wrap: pretty;
+}
+
+header.hero .lede {
+  font-size: 17px;
+  color: var(--text-primary);
+  max-width: var(--measure);
+  margin: 0 0 14px;
+  text-wrap: balance;
+}
+
+.hypothesis-box {
+  margin-top: 24px;
+  padding: 16px 18px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  font-size: 14.5px;
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+
+.hypothesis-box .label {
+  font-weight: 700;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-strong);
+  margin-bottom: 6px;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 28px;
+}
+@media (max-width: 700px) {
+  .stat-row { grid-template-columns: repeat(2, 1fr); }
+}
+.stat-tile {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 16px;
+}
+.stat-tile .stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-strong);
+  font-family: var(--mono);
+}
+.stat-tile .stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 5px;
+}
+
+/* ---------------------------------------------------------------------
+   sections
+--------------------------------------------------------------------- */
+section {
+  margin-bottom: 56px;
+}
+
+section h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 0 0 10px;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  max-width: 30ch;
+  text-wrap: balance;
+}
+
+section .section-sub {
+  font-size: 14.5px;
+  color: var(--text-secondary);
+  margin: 0 0 20px;
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+
+/* ---------------------------------------------------------------------
+   cards
+--------------------------------------------------------------------- */
+/* Cards sit a touch translucent so the background grid reads faintly through
+   them, without costing any contrast on the text itself. */
+.chart-card, .quant-card, .callout, .findings-card, .methodology-card, .table-card {
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.chart-card {
+  padding: 18px 18px 12px;
+}
+
+.chart-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 3px;
+  color: var(--text-primary);
+}
+
+.chart-card .chart-note {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 12px;
+}
+
+.chart-card canvas {
+  max-height: 260px;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 760px) {
+  .chart-grid { grid-template-columns: 1fr; }
+}
+
+.callout-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+@media (max-width: 760px) {
+  .callout-row { grid-template-columns: 1fr; }
+}
+
+.callout {
+  padding: 20px;
+  border-top: 3px solid var(--accent);
+}
+
+/* A stack whose SLA result is non-monotonic must not read as a clean pass —
+   it gets its own colour and a text headline instead of a confident number. */
+.callout.mixed { border-top-color: var(--warning); }
+.callout.mixed .headline {
+  font-size: 22px;
+  color: var(--warning);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+.callout .stack-name {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.callout .swatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.callout .headline {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--mono);
+}
+
+.callout .headline .unit {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 4px;
+  font-family: system-ui, sans-serif;
+}
+
+.callout .detail {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.callout .status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 5px;
+}
+.status.pass { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+.status.fail { background: color-mix(in srgb, var(--critical) 16%, transparent); color: var(--critical); }
+.status.mixed { background: color-mix(in srgb, var(--warning) 18%, transparent); color: var(--warning); }
+
+/* qualifier that travels with a headline number so the caveat can't be
+   separated from the figure it applies to */
+.stat-qualifier {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-left: 3px solid var(--warning);
+  background: color-mix(in srgb, var(--warning) 8%, transparent);
+  border-radius: 0 6px 6px 0;
+  padding: 10px 14px;
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+.stat-qualifier .figure {
+  font-family: var(--mono);
+  font-weight: 700;
+  color: var(--accent-strong);
+  font-size: 15px;
+}
+.stat-qualifier a { color: var(--accent-strong); }
+
+.table-card { overflow: hidden; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  background: var(--surface-1);
+}
+
+table caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  padding: 14px 16px 0;
+}
+
+th, td {
+  text-align: right;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--gridline);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+th:first-child, td:first-child { text-align: left; font-variant-numeric: normal; }
+
+thead th {
+  font-weight: 600;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--surface-2);
+}
+
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+
+tr.oom-row td { color: var(--critical); font-weight: 600; }
+
+.table-wrap { overflow-x: auto; }
+
+.quant-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 16px;
+  align-items: center;
+}
+@media (max-width: 700px) {
+  .quant-grid { grid-template-columns: 1fr; }
+  .quant-grid .arrow { display: none; }
+}
+
+.quant-card { padding: 20px; }
+
+.quant-card h3 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-strong);
+  margin: 0 0 14px;
+}
+
+.quant-card .metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--gridline);
+  font-size: 14px;
+}
+.quant-card .metric:last-child { border-bottom: none; }
+.quant-card .metric .val {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--mono);
+}
+
+.arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+  font-size: 22px;
+}
+.arrow .delta {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--good);
+  text-align: center;
+}
+
+.caveat {
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  max-width: var(--measure);
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
+  border-radius: 8px;
+  padding: 10px 13px;
+}
+
+.findings-card { padding: 22px 24px; }
+
+.findings-card p.lead {
+  font-size: 15px;
+  color: var(--text-primary);
+  margin: 0 0 14px;
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+
+.findings-card ul {
+  margin: 12px 0 0;
+  padding-left: 20px;
+}
+.findings-card li {
+  margin-bottom: 12px;
+  font-size: 14.5px;
+  color: var(--text-secondary);
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+.findings-card li strong { color: var(--text-primary); }
+
+.verdict-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 11px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+}
+.verdict-pill.confirmed { background: color-mix(in srgb, var(--good) 16%, transparent); color: var(--good); }
+.verdict-pill.partial { background: color-mix(in srgb, var(--warning) 20%, transparent); color: var(--warning); }
+
+.methodology-card { padding: 22px 24px; }
+
+.methodology-card h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 22px 0 8px;
+  color: var(--accent-strong);
+}
+.methodology-card h3:first-child { margin-top: 0; }
+
+.methodology-card p, .methodology-card li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+
+.methodology-card ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+.methodology-card li { margin-bottom: 6px; }
+
+.methodology-card code {
+  background: var(--surface-2);
+  color: var(--accent-strong);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.limitations-note {
+  margin-top: 18px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  border-top: 1px dashed var(--baseline);
+  padding-top: 14px;
+  max-width: var(--measure);
+  text-wrap: pretty;
+}
+.limitations-note strong { color: var(--warning); }
+
+footer {
+  border-top: 1px solid var(--border);
+  padding-top: 22px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.legend-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+.legend-row .item { display: flex; align-items: center; gap: 6px; }
+.legend-row .swatch { width: 9px; height: 9px; border-radius: 2px; }
