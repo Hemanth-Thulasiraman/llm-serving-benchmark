@@ -7,7 +7,7 @@ what a user would actually feel: time-to-first-token, end-to-end latency, and
 sustained throughput. A second experiment profiles KV-cache memory scaling and
 4-bit quantization tradeoffs.
 
-**📊 [Live results →](#)** *(link added after deploy)*
+**📊 [Live results → llm-serving-benchmark.vercel.app](https://llm-serving-benchmark.vercel.app)**
 
 Model under test: `Qwen/Qwen2.5-7B-Instruct`.
 
@@ -147,3 +147,17 @@ python3 -m http.server 8000 --directory site
 
 The site is dependency-free static HTML/CSS/JS — Chart.js via CDN, no backend,
 no build step. `vercel.json` points Vercel at `site/` and skips the build.
+
+## Deploying
+
+The site is deployed to Vercel and redeploys automatically on push to `main`.
+To deploy manually:
+
+```bash
+npx vercel deploy --prod
+```
+
+Because the page reads its data from the inlined `<script id="summary-data">`
+block, **re-run `python3 site/embed_data.py` before deploying** after any change
+to `analysis/summary.json` — otherwise the published page will show stale
+numbers.
